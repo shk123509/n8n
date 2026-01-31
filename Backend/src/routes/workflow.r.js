@@ -1,31 +1,23 @@
 import express from "express";
-import {verifyJWT} from "../middleware/auth.middleware.js";
-
+import { verifyJWT } from "../middleware/auth.middleware.js";
 import {
- createWorkflow,
+  createWorkflow,
   getAllWorkflows,
   getWorkflowById,
   updateWorkflow,
   toggleWorkflow,
   deleteWorkflow
-} from "../controllers/workflow.c.js"
+} from "../controllers/workflow.c.js";
 
 const router = express.Router();
 
-router.post("/createdflow", verifyJWT, createWorkflow);
+router.use(verifyJWT);
 
-router.get("/get", verifyJWT, getAllWorkflows);
-
-router.get("/workflow/:id", verifyJWT, getWorkflowById);
-
-
-router.put("/workflow/:id", verifyJWT, updateWorkflow);
-
-
-router.patch("/workflow/:id/toggle", verifyJWT, toggleWorkflow);
-
-
-router.delete("/workflow/:id", verifyJWT, deleteWorkflow);
-
+router.post("/", createWorkflow);
+router.get("/", getAllWorkflows);
+router.get("/:id", getWorkflowById);
+router.put("/:id", updateWorkflow);
+router.patch("/:id/toggle", toggleWorkflow);
+router.delete("/:id", deleteWorkflow);
 
 export default router;

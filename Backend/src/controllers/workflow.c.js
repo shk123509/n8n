@@ -16,7 +16,7 @@ export const createWorkflow = async (req, res) => {
     name,
     nodes,
     edges,
-    isActive: false
+    isActive: true
   });
 
   res.status(201).json(workflow);

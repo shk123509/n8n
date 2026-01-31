@@ -1,11 +1,12 @@
 "use client";
-import { useState } from 'react';
-import { useAuth } from '@/context/AuthContext';
-import { useRouter } from 'next/navigation';
-import Link from 'next/link';
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { useAuth } from "@/context/AuthContext";
+import Link from "next/link";
+import { Mail, Lock, User, ArrowRight } from "lucide-react";
 
 export default function Login() {
-  const [formData, setFormData] = useState({ email: '', username: '', password: '' });
+  const [formData, setFormData] = useState({ email: "", username: "", password: "" });
   const [loading, setLoading] = useState(false);
   const { login } = useAuth();
   const router = useRouter();
@@ -13,82 +14,87 @@ export default function Login() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
+
     try {
       const res = await fetch("http://localhost:8000/api/v1/users/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(formData),
+        body: JSON.stringify(formData)
       });
 
-      if (res.ok) {
-        const data = await res.json();
-        login(data);
-        router.push("/");
-      } else {
-        alert("Invalid credentials!");
+      const data = await res.json();
+
+      if (!res.ok) {
+        alert(data.message || "Invalid credentials");
+        return;
       }
+
+      login(data); // Using context login
+      router.push("/builder");
     } catch (err) {
-      console.error(err);
+      console.error("Login error:", err);
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-[#f3f4f6] px-4">
-      <div className="max-w-md w-full space-y-8 bg-white p-10 rounded-3xl shadow-2xl border border-gray-100">
-        
-        <div className="text-center">
-          <h2 className="text-4xl font-black text-gray-800 tracking-tight">Login</h2>
-          <p className="mt-3 text-gray-500 font-medium">Welcome back! Please enter your details.</p>
+    <div className="min-h-screen flex items-center justify-center bg-[#f8fafc] p-4">
+      <div className="max-w-md w-full bg-white p-10 rounded-[2.5rem] shadow-xl border border-slate-100">
+        <div className="text-center mb-10">
+          <div className="w-16 h-16 bg-blue-600 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg shadow-blue-200">
+            <Lock className="text-white" size={32} />
+          </div>
+          <h2 className="text-3xl font-bold text-slate-800">Welcome Back</h2>
+          <p className="text-slate-500 mt-2 font-medium">Log in to your AI Builder account</p>
         </div>
 
-        <form onSubmit={handleSubmit} className="mt-8 space-y-4">
-          <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-1 ml-1">Username</label>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="relative">
+            <User className="absolute left-4 top-4 text-slate-400" size={20} />
             <input
-              type="text"
-              placeholder="Enter your username"
+              placeholder="Username"
+              className="w-full pl-12 pr-4 py-4 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-blue-500 outline-none transition-all"
+              onChange={(e) => setFormData({ ...formData, username: e.target.value })}
               required
-              className="w-full p-4 bg-gray-50 border border-gray-200 rounded-2xl focus:ring-2 focus:ring-blue-500 focus:bg-white focus:outline-none transition-all"
-              onChange={(e) => setFormData({...formData, username: e.target.value})}
             />
           </div>
 
-          <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-1 ml-1">Email Address</label>
+          <div className="relative">
+            <Mail className="absolute left-4 top-4 text-slate-400" size={20} />
             <input
               type="email"
-              placeholder="name@company.com"
+              placeholder="Email address"
+              className="w-full pl-12 pr-4 py-4 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-blue-500 outline-none transition-all"
+              onChange={(e) => setFormData({ ...formData, email: e.target.value })}
               required
-              className="w-full p-4 bg-gray-50 border border-gray-200 rounded-2xl focus:ring-2 focus:ring-blue-500 focus:bg-white focus:outline-none transition-all"
-              onChange={(e) => setFormData({...formData, email: e.target.value})}
             />
           </div>
 
-          <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-1 ml-1">Password</label>
+          <div className="relative">
+            <Lock className="absolute left-4 top-4 text-slate-400" size={20} />
             <input
               type="password"
-              placeholder="••••••••"
+              placeholder="Password"
+              className="w-full pl-12 pr-4 py-4 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-blue-500 outline-none transition-all"
+              onChange={(e) => setFormData({ ...formData, password: e.target.value })}
               required
-              className="w-full p-4 bg-gray-50 border border-gray-200 rounded-2xl focus:ring-2 focus:ring-blue-500 focus:bg-white focus:outline-none transition-all"
-              onChange={(e) => setFormData({...formData, password: e.target.value})}
             />
           </div>
 
           <button
             disabled={loading}
-            className="w-full py-4 px-4 mt-4 text-white bg-blue-600 hover:bg-blue-700 rounded-2xl font-bold text-lg shadow-lg shadow-blue-200 active:scale-[0.98] transition-all disabled:opacity-70"
+            className="w-full bg-slate-900 text-white py-4 rounded-2xl font-bold text-lg flex items-center justify-center gap-2 hover:bg-slate-800 transition-all active:scale-95 disabled:opacity-70"
           >
-            {loading ? "Processing..." : "Sign In"}
+            {loading ? "Verifying..." : "Sign In"}
+            <ArrowRight size={20} />
           </button>
         </form>
 
-        <p className="text-center text-gray-600 font-medium mt-6">
+        <p className="text-center mt-8 text-slate-600 font-medium">
           Don't have an account?{" "}
-          <Link href="/signup" className="text-blue-600 hover:text-blue-800 underline decoration-2 underline-offset-4 transition-colors">
-            Sign up
+          <Link href="/signup" className="text-blue-600 font-bold hover:underline">
+            Create one
           </Link>
         </p>
       </div>

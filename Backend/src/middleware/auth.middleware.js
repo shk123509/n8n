@@ -6,23 +6,25 @@ import { User } from "../models/User.js"
 
 export const verifyJWT = asyncHandler1(async (req, _, next) => {
   try {
-    const token = req.cookies?.accesstoken || req.header("Authorization")?.replace("Berer ", "")
+    // ⬇️ FIXED: "Berer" ko "Bearer" kar diya (Spelling Fix)
+    const token = req.cookies?.accesstoken || req.header("Authorization")?.replace("Bearer ", "");
 
     if (!token) {
-      throw new Apierror(401, "Unauthorization User")
+      throw new Apierror(401, "Unauthorized User");
     }
 
     const decodeToken = jwt.verify(token, process.env.ACCESS_TOKEN_SECRET);
 
-    const user = await User.findById(decodeToken._id).select("-password -refreshToken")
+    const user = await User.findById(decodeToken?._id).select("-password -refreshToken");
 
     if (!user) {
-      throw new Apierror(401, "Invilid access token")
+      throw new Apierror(401, "Invalid access token");
     }
 
     req.user = user;
-    next()
+    next();
   } catch (error) {
-    throw new Apierror(401, error.message || "Access token is invilid")
+    // Apierror ko properly throw karein
+    next(new Apierror(401, error.message || "Access token is invalid"));
   }
-})
+});

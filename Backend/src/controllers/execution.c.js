@@ -1,39 +1,66 @@
+import axios from "axios";
 import Execution from "../models/execution.js";
 import Workflow from "../models/workflow.js";
 
 /**
- * ▶️ Start Execution
+ * ▶️ Start execution
  */
 export const createExecution = async (req, res) => {
-  const { workflowId, input } = req.body;
-  const userId = req.user?._id;
+  try {
+    const { workflowId, input } = req.body;
+    const userId = req.user._id;
 
-  const workflow = await Workflow.findOne({
-    _id: workflowId,
-    userId,
-    isActive: true
-  });
+    const workflow = await Workflow.findOne({
+      _id: workflowId,
+      userId,
+      isActive: true
+    });
 
-  if (!workflow) {
-    return res.status(404).json({ message: "Active workflow not found" });
+    if (!workflow) {
+      return res.status(404).json({ message: "Active workflow not found" });
+    }
+
+    // create execution
+    const execution = await Execution.create({
+      workflowId,
+      userId,
+      input,
+      status: "running",
+      logs: [{ message: "Execution started", time: new Date() }]
+    });
+
+    // 🔥 CALL PYTHON ENGINE
+    const pyRes = await axios.post("http://127.0.0.1:8000/execute", {
+      nodes: workflow.nodes,
+      edges: workflow.edges,
+      query: input.query || input
+    });
+
+    execution.output = pyRes.data.result;
+    execution.status = "success";
+    execution.logs.push({
+      message: "Execution finished",
+      time: new Date()
+    });
+
+    await execution.save();
+
+    res.status(201).json(execution);
+  } catch (err) {
+    console.error("Execution Controller Error:", err.message);
+    if (err.response) {
+      console.error("Python Engine Error Data:", err.response.data);
+      console.error("Python Engine Status:", err.response.status);
+    }
+    res.status(500).json({ message: "Execution failed", error: err.message });
   }
-
-  const execution = await Execution.create({
-    workflowId,
-    userId,
-    input,
-    status: "running",
-    logs: []
-  });
-
-  res.status(201).json(execution);
 };
 
 /**
  * 📄 Get all executions
  */
 export const getAllExecutions = async (req, res) => {
-  const executions = await Execution.find({ userId: req.user?._id })
+  const executions = await Execution.find({ userId: req.user._id })
     .select("-logs")
     .sort({ createdAt: -1 });
 
@@ -41,12 +68,12 @@ export const getAllExecutions = async (req, res) => {
 };
 
 /**
- * 🔍 Get execution details
+ * 🔍 Get execution by id
  */
 export const getExecutionById = async (req, res) => {
   const execution = await Execution.findOne({
     _id: req.params.id,
-    userId: req.user?._id
+    userId: req.user._id
   });
 
   if (!execution) {
@@ -57,58 +84,13 @@ export const getExecutionById = async (req, res) => {
 };
 
 /**
- * 🧠 Update execution result (Python callback)
- */
-export const completeExecution = async (req, res) => {
-  const { output, status, logs = [] } = req.body;
-
-  const execution = await Execution.findById(req.params.id);
-  if (!execution) {
-    return res.status(404).json({ message: "Execution not found" });
-  }
-
-  execution.output = output;
-  execution.status = status || "success";
-  execution.logs.push(...logs);
-
-  await execution.save();
-
-  res.json({ message: "Execution completed" });
-};
-
-/**
- * 🪵 Add execution log
- */
-export const addExecutionLog = async (req, res) => {
-  const { nodeId, message } = req.body;
-
-  const execution = await Execution.findById(req.params.id);
-  if (!execution) {
-    return res.status(404).json({ message: "Execution not found" });
-  }
-
-  execution.logs.push({
-    nodeId,
-    message,
-    time: new Date()
-  });
-
-  await execution.save();
-  res.json({ message: "Log added" });
-};
-
-/**
  * ❌ Delete execution
  */
 export const deleteExecution = async (req, res) => {
-  const execution = await Execution.findOneAndDelete({
+  await Execution.findOneAndDelete({
     _id: req.params.id,
-    userId: req.user?._id
+    userId: req.user._id
   });
-
-  if (!execution) {
-    return res.status(404).json({ message: "Execution not found" });
-  }
 
   res.json({ message: "Execution deleted" });
 };
