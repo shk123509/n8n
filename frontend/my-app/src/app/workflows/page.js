@@ -10,7 +10,7 @@ import ReactFlow, {
 } from "reactflow";
 import "reactflow/dist/style.css";
 import axios from "axios";
-import { Save, Send, Terminal, Cpu, MessageSquare } from "lucide-react";
+import { Save, Send, Terminal, Cpu, MessageSquare, Menu } from "lucide-react";
 
 const NODE_TYPES = [
   { id: "coding", label: "Coding Assistant", color: "bg-blue-500" },
@@ -39,6 +39,7 @@ export default function BuilderPage() {
   const [chatInput, setChatInput] = useState("");
   const [logs, setLogs] = useState([]);
   const [chatHistory, setChatHistory] = useState([]);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
 
   const onNodesChange = useCallback((chs) => setNodes((nds) => applyNodeChanges(chs, nds)), []);
   const onEdgesChange = useCallback((chs) => setEdges((eds) => applyEdgeChanges(chs, eds)), []);
@@ -100,16 +101,54 @@ export default function BuilderPage() {
         { headers: { Authorization: `Bearer ${token}` } }
       );
 
-      const aiResponse = res.data.output || "No response from AI Engine";
-      setChatHistory((prev) => [...prev, { role: "ai", text: aiResponse }]);
+      const aiResult = res.data.output?.result || res.data.output || "No response from AI Engine";
+      const route = res.data.output?.route;
+
+      // Map route to Node Label
+      const routeToLabel = {
+        "is_coding_question": "Coding Assistant",
+        "is_doctor_question": "Medical AI",
+        "is_farmer_question": "Agri Expert",
+        "is_advice_question": "Legal Advice",
+        "is_general_question": "General AI",
+        "coding": "Coding Assistant",
+        "doctor": "Medical AI",
+        "farmer": "Agri Expert",
+        "advice": "Legal Advice",
+        "general": "General AI"
+      };
+
+      // Animate Edge if Layout Found
+      if (route) {
+        const targetLabel = routeToLabel[route];
+
+        setEdges((eds) => eds.map(e => {
+          // Find target node that has this label
+          const targetNode = nodes.find(n => n.id === e.target);
+          const isTarget = targetNode?.data?.label === targetLabel;
+
+          // Highlight ONLY the edge connected to the target node
+          if (isTarget) {
+            return { ...e, animated: true, style: { stroke: '#2563eb', strokeWidth: 3 } };
+          }
+          // Reset others
+          return { ...e, animated: false, style: { stroke: '#b1b1b7', strokeWidth: 1 } };
+        }));
+
+        // Highlight the classified node path
+        setLogs((prev) => [...prev, `[${new Date().toLocaleTimeString()}] 🔀 Routed to: ${targetLabel || route}`]);
+      }
+
+      setChatHistory((prev) => [...prev, { role: "ai", text: aiResult }]);
       setLogs((prev) => [...prev, `[${new Date().toLocaleTimeString()}] Execution Successful`]);
 
     } catch (err) {
       console.error("Execution Error:", err.response?.data);
       const errMsg = err.response?.data?.message || "Execution Failed";
 
-      setLogs((prev) => [...prev, `[${new Date().toLocaleTimeString()}] Error: ${errMsg}`]);
+      setLogs((prev) => [...prev, `[${new Date().toLocaleTimeString()}] Error: ${JSON.stringify(err.response?.data || err.message)}`]);
       setChatHistory((prev) => [...prev, { role: "ai", text: `Error: ${errMsg}` }]);
+      alert(`Execution Error Detail: ${JSON.stringify(err.response?.data || err.message)}`);
     }
   };
 
@@ -117,10 +156,15 @@ export default function BuilderPage() {
     <div className="flex h-screen w-full bg-slate-50 overflow-hidden text-slate-900">
 
       {/* SIDEBAR */}
-      <aside className="w-72 bg-white border-r p-6 flex flex-col z-20 shadow-sm">
-        <div className="flex items-center gap-2 mb-8">
-          <Cpu className="text-blue-600" size={28} />
-          <h1 className="text-xl font-bold tracking-tight">AI Builder</h1>
+      <aside className={`${isSidebarOpen ? 'w-72 p-6' : 'w-0 p-0 overflow-hidden'} bg-white border-r flex flex-col z-20 shadow-sm transition-all duration-300`}>
+        <div className="flex items-center justify-between mb-8">
+          <div className="flex items-center gap-2">
+            <Cpu className="text-blue-600" size={28} />
+            <h1 className="text-xl font-bold tracking-tight whitespace-nowrap">AI Builder</h1>
+          </div>
+          <button onClick={() => setIsSidebarOpen(!isSidebarOpen)} className="p-2 hover:bg-slate-100 rounded-lg transition-colors">
+            <Menu size={20} className="text-slate-600" />
+          </button>
         </div>
 
         <p className="text-xs font-bold text-slate-400 uppercase mb-4 tracking-widest">Available Nodes</p>
@@ -155,6 +199,14 @@ export default function BuilderPage() {
 
       {/* CANVAS AREA */}
       <main className="flex-grow relative bg-[#F8FAFC]">
+        {!isSidebarOpen && (
+          <button
+            onClick={() => setIsSidebarOpen(true)}
+            className="absolute top-4 left-4 z-50 bg-white p-2 rounded-lg shadow-md border hover:bg-slate-50 transition-all"
+          >
+            <Menu size={20} className="text-slate-600" />
+          </button>
+        )}
         <div className="w-full h-full"> {/* Parent container fix */}
           <ReactFlow
             nodes={nodes}

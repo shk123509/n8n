@@ -36,7 +36,10 @@ export const createExecution = async (req, res) => {
       query: input.query || input
     });
 
-    execution.output = pyRes.data.result;
+    execution.output = {
+      result: pyRes.data.result,
+      route: pyRes.data.route
+    };
     execution.status = "success";
     execution.logs.push({
       message: "Execution finished",

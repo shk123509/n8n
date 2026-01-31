@@ -20,7 +20,7 @@ const executionSchema = new mongoose.Schema(
     },
 
     output: {
-      type: String
+      type: mongoose.Schema.Types.Mixed
     },
 
     status: {

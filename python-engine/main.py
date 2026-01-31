@@ -26,5 +26,6 @@ def execute(req: QueryRequest):
     result = graph.invoke(state)
 
     return {
-        "result": result.get("llm_result")
+        "result": result.get("llm_result"),
+        "route": result.get("route")
     }
