@@ -1,18 +1,21 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import ReactFlow, {
   addEdge,
   applyNodeChanges,
   applyEdgeChanges,
   Background,
   Controls,
+  Handle,
+  Position,
+  Panel,
 } from "reactflow";
 import "reactflow/dist/style.css";
 import axios from "axios";
-import { Save, Send, Terminal, Cpu, MessageSquare, Menu } from "lucide-react";
+import { Save, Send, Terminal, Cpu, Zap, Play, Plus, Menu, Activity, Loader2 } from "lucide-react";
 
-const NODE_TYPES = [
+const NODE_TYPES_CONFIG = [
   { id: "coding", label: "Coding Assistant", color: "bg-blue-500" },
   { id: "doctor", label: "Medical AI", color: "bg-red-500" },
   { id: "farmer", label: "Agri Expert", color: "bg-green-500" },
@@ -23,18 +26,55 @@ const NODE_TYPES = [
 
 const API_URL = "http://localhost:4000/api/v1";
 
+// --- CUSTOM NODE WITH EXECUTION STATES ---
+const CustomNodeUI = ({ data, selected }) => {
+  const isMaster = data.label.includes("Master");
+  const isExecuting = data.status === "executing";
+
+  return (
+    <div className={`relative px-4 py-4 rounded-2xl border-2 transition-all duration-500 shadow-2xl 
+      w-[240px] h-auto min-h-[90px] flex flex-col justify-center
+      ${selected ? 'border-blue-500 ring-4 ring-blue-500/10' : 'border-slate-200'} 
+      ${isExecuting ? 'border-yellow-400 shadow-[0_0_20px_rgba(250,204,21,0.4)] scale-105' : ''}
+      ${isMaster ? 'bg-slate-900 text-white' : 'bg-white text-slate-800'}`}>
+      
+      <Handle type="target" position={Position.Left} id="main-in" className="!w-3 !h-3 !bg-blue-500 border-2 border-white" />
+      
+      <div className="flex items-start gap-3 w-full overflow-hidden">
+        <div className={`p-2.5 rounded-xl shrink-0 ${isMaster ? 'bg-blue-600 shadow-lg' : 'bg-slate-100'}`}>
+          {isExecuting ? <Loader2 size={18} className="animate-spin text-yellow-500" /> : 
+           isMaster ? <Zap size={18} fill="white" /> : <Cpu size={18} className="text-slate-600" />}
+        </div>
+        
+        <div className="flex flex-col min-w-0 flex-1 overflow-hidden">
+          <p className="text-[9px] font-black uppercase tracking-widest opacity-40 mb-1 flex justify-between">
+            {isMaster ? 'System Core' : 'Module'}
+            {isExecuting && <span className="text-yellow-500 animate-pulse font-black">RUNNING...</span>}
+          </p>
+          <p className="text-[13px] font-bold leading-snug break-words whitespace-normal">
+            {data.label}
+          </p>
+        </div>
+      </div>
+
+      {isMaster && (
+        <div className="absolute -bottom-5 left-0 right-0 flex justify-between px-6 pointer-events-none">
+          <Handle type="source" position={Position.Bottom} id="model" className="!bg-purple-500 !static !translate-x-0" />
+          <Handle type="source" position={Position.Bottom} id="memory" className="!bg-emerald-500 !static !translate-x-0" />
+          <Handle type="source" position={Position.Bottom} id="tool" className="!bg-orange-500 !static !translate-x-0" />
+        </div>
+      )}
+
+      <Handle type="source" position={Position.Right} id="main-out" className="!w-3 !h-3 !bg-blue-500 border-2 border-white" />
+    </div>
+  );
+};
+
+const nodeTypes = { default: CustomNodeUI };
+
 export default function BuilderPage() {
-  const [nodes, setNodes] = useState([
-    {
-      id: "ai-agent-main",
-      type: "default",
-      data: { label: "🤖 AI Agent (Master)" },
-      position: { x: 400, y: 200 },
-      style: { background: "#2563eb", color: "#fff", fontWeight: "bold", borderRadius: "10px", width: 150 }
-    }
-  ]);
+  const [nodes, setNodes] = useState([{ id: "master", type: "default", data: { label: "🤖 AI Agent (Master)", status: "idle" }, position: { x: 450, y: 200 } }]);
   const [edges, setEdges] = useState([]);
-  const [workflowName, setWorkflowName] = useState("My New Workflow");
   const [workflowId, setWorkflowId] = useState(null);
   const [chatInput, setChatInput] = useState("");
   const [logs, setLogs] = useState([]);
@@ -43,229 +83,138 @@ export default function BuilderPage() {
 
   const onNodesChange = useCallback((chs) => setNodes((nds) => applyNodeChanges(chs, nds)), []);
   const onEdgesChange = useCallback((chs) => setEdges((eds) => applyEdgeChanges(chs, eds)), []);
-  const onConnect = useCallback((params) => setEdges((eds) => addEdge({ ...params, animated: true }, eds)), []);
+  
+  const onConnect = useCallback((params) => {
+    setEdges((eds) => addEdge({ ...params, animated: true, style: { stroke: '#cbd5e1', strokeWidth: 2 } }, eds));
+  }, []);
 
-  const addNode = (typeLabel) => {
-    const newNode = {
-      id: `node-${Date.now()}`,
-      type: "default",
-      position: { x: 100, y: 100 },
-      data: { label: typeLabel },
-      className: "shadow-md border-2 border-slate-200 rounded-lg p-2 bg-white"
-    };
+  const addNode = (label) => {
+    const newNode = { id: `node-${Date.now()}`, type: "default", position: { x: 100, y: 400 }, data: { label, status: "idle" } };
     setNodes((nds) => [...nds, newNode]);
-  };
-
-  const saveWorkflow = async () => {
-    // Check both keys to be safe
-    const token = localStorage.getItem("accessToken") || localStorage.getItem("accesstoken");
-    if (!token) return alert("Please Login again.");
-
-    try {
-      const res = await axios.post(`${API_URL}/workflow`,
-        {
-          name: workflowName,
-          nodes,
-          edges,
-          isActive: true
-        },
-        { headers: { Authorization: `Berer ${token}` } }
-      );
-      setWorkflowId(res.data._id);
-      alert("Workflow Saved & Activated!");
-      setLogs(prev => [...prev, `[${new Date().toLocaleTimeString()}] Workflow Saved: ${res.data._id}`]);
-    } catch (err) {
-      console.error("Save Error:", err.response?.data);
-      alert(err.response?.data?.message || "Save failed");
-    }
   };
 
   const runWorkflow = async () => {
     const token = localStorage.getItem("accessToken") || localStorage.getItem("accesstoken");
-    if (!token) return alert("Please Login again.");
-    if (!workflowId) return alert("Please save workflow first to activate it.");
-    if (!chatInput.trim()) return;
-
-    const currentInput = chatInput;
-    setChatInput("");
-    setChatHistory((prev) => [...prev, { role: "user", text: currentInput }]);
-    setLogs((prev) => [...prev, `[${new Date().toLocaleTimeString()}] Calling AI Engine...`]);
+    if (!workflowId) return alert("Save workflow first!");
+    
+    setLogs(p => [...p, `[INIT]: Kernel Start...`]);
+    setChatHistory(p => [...p, { role: "user", text: chatInput }]);
+    
+    // 1. Highlight Master Node
+    setNodes(nds => nds.map(n => n.id === "master" ? { ...n, data: { ...n.data, status: "executing" } } : n));
 
     try {
-      // ✅ URL FIXED: Match backend router.post("/")
-      const res = await axios.post(`${API_URL}/execution`,
-        {
-          workflowId: workflowId,
-          input: { query: currentInput }
-        },
-        { headers: { Authorization: `Berer ${token}` } }
-      );
+      const res = await axios.post(`${API_URL}/execution`, { workflowId, input: { query: chatInput } }, { headers: { Authorization: `Bearer ${token}` } });
+      
+      const route = res.data.output?.route || res.data.route;
+      const aiResult = res.data.output?.result || res.data.output;
 
-      const aiResult = res.data.output?.result || res.data.output || "No response from AI Engine";
-      const route = res.data.output?.route;
+      // Mapping for Flow Animation
+      const routeMap = { "is_coding_question": "Coding Assistant", "coding": "Coding Assistant", "doctor": "Medical AI", "farmer": "Agri Expert", "advice": "Legal Advice", "general": "General AI" };
+      const targetLabel = routeMap[route];
 
-      // Map route to Node Label
-      const routeToLabel = {
-        "is_coding_question": "Coding Assistant",
-        "is_doctor_question": "Medical AI",
-        "is_farmer_question": "Agri Expert",
-        "is_advice_question": "Legal Advice",
-        "is_general_question": "General AI",
-        "coding": "Coding Assistant",
-        "doctor": "Medical AI",
-        "farmer": "Agri Expert",
-        "advice": "Legal Advice",
-        "general": "General AI"
-      };
+      // 2. Animate the Specific Flow Path
+      setEdges(eds => eds.map(e => {
+        const targetNode = nodes.find(n => n.id === e.target);
+        if (targetNode?.data?.label === targetLabel) {
+          return { ...e, animated: true, style: { stroke: '#2563eb', strokeWidth: 5, filter: 'drop-shadow(0 0 8px rgba(37,99,235,0.6))' } };
+        }
+        return { ...e, animated: false, style: { stroke: '#e2e8f0', strokeWidth: 1 } };
+      }));
 
-      // Animate Edge if Layout Found
-      if (route) {
-        const targetLabel = routeToLabel[route];
+      // 3. Highlight Target Node
+      setNodes(nds => nds.map(n => {
+        if (n.data.label === targetLabel) return { ...n, data: { ...n.data, status: "executing" } };
+        return { ...n, data: { ...n.data, status: "idle" } };
+      }));
 
-        setEdges((eds) => eds.map(e => {
-          // Find target node that has this label
-          const targetNode = nodes.find(n => n.id === e.target);
-          const isTarget = targetNode?.data?.label === targetLabel;
+      setLogs(p => [...p, `[ROUTING]: ${route} -> Active Node: ${targetLabel}`]);
+      setChatHistory(p => [...p, { role: "ai", text: aiResult }]);
 
-          // Highlight ONLY the edge connected to the target node
-          if (isTarget) {
-            return { ...e, animated: true, style: { stroke: '#2563eb', strokeWidth: 3 } };
-          }
-          // Reset others
-          return { ...e, animated: false, style: { stroke: '#b1b1b7', strokeWidth: 1 } };
-        }));
+      // Reset after 3 seconds
+      setTimeout(() => {
+        setNodes(nds => nds.map(n => ({ ...n, data: { ...n.data, status: "idle" } })));
+      }, 3000);
 
-        // Highlight the classified node path
-        setLogs((prev) => [...prev, `[${new Date().toLocaleTimeString()}] 🔀 Routed to: ${targetLabel || route}`]);
-      }
-
-      setChatHistory((prev) => [...prev, { role: "ai", text: aiResult }]);
-      setLogs((prev) => [...prev, `[${new Date().toLocaleTimeString()}] Execution Successful`]);
-
-    } catch (err) {
-      console.error("Execution Error:", err.response?.data);
-      const errMsg = err.response?.data?.message || "Execution Failed";
-
-      setLogs((prev) => [...prev, `[${new Date().toLocaleTimeString()}] Error: ${JSON.stringify(err.response?.data || err.message)}`]);
-      setChatHistory((prev) => [...prev, { role: "ai", text: `Error: ${errMsg}` }]);
-      alert(`Execution Error Detail: ${JSON.stringify(err.response?.data || err.message)}`);
+    } catch (e) {
+      setLogs(p => [...p, `[CRITICAL]: Execution Error`]);
+      setNodes(nds => nds.map(n => ({ ...n, data: { ...n.data, status: "idle" } })));
     }
+    setChatInput("");
   };
 
   return (
-    <div className="flex h-screen w-full bg-slate-50 overflow-hidden text-slate-900">
-
-      {/* SIDEBAR */}
-      <aside className={`${isSidebarOpen ? 'w-72 p-6' : 'w-0 p-0 overflow-hidden'} bg-white border-r flex flex-col z-20 shadow-sm transition-all duration-300`}>
-        <div className="flex items-center justify-between mb-8">
-          <div className="flex items-center gap-2">
-            <Cpu className="text-blue-600" size={28} />
-            <h1 className="text-xl font-bold tracking-tight whitespace-nowrap">AI Builder</h1>
-          </div>
-          <button onClick={() => setIsSidebarOpen(!isSidebarOpen)} className="p-2 hover:bg-slate-100 rounded-lg transition-colors">
-            <Menu size={20} className="text-slate-600" />
-          </button>
+    <div className="flex h-screen w-full bg-[#f8fafc] overflow-hidden">
+      <aside className={`${isSidebarOpen ? 'w-72' : 'w-0'} bg-white border-r flex flex-col z-20 transition-all duration-500 shadow-2xl overflow-hidden`}>
+        <div className="p-6 border-b border-slate-50 flex items-center justify-between bg-slate-900 text-white">
+          <h1 className="font-black text-xl italic flex items-center gap-2"><Activity size={20} className="text-blue-400"/> ENGINE</h1>
+          <button onClick={() => setIsSidebarOpen(false)}><Menu size={18}/></button>
         </div>
-
-        <p className="text-xs font-bold text-slate-400 uppercase mb-4 tracking-widest">Available Nodes</p>
-        <div className="space-y-3 flex-grow overflow-y-auto pr-2">
-          {NODE_TYPES.map((node) => (
-            <button
-              key={node.id}
-              onClick={() => addNode(node.label)}
-              className="w-full flex items-center gap-3 p-3 bg-slate-50 border border-slate-100 rounded-xl hover:bg-blue-50 hover:border-blue-200 transition-all text-sm font-semibold group"
-            >
-              <div className={`w-3 h-3 rounded-full ${node.color} group-hover:scale-110 transition-transform`}></div>
-              {node.label}
+        <div className="p-6 space-y-3 flex-grow overflow-y-auto bg-slate-50/50">
+          {NODE_TYPES_CONFIG.map((node) => (
+            <button key={node.id} onClick={() => addNode(node.label)} className="w-full flex items-center gap-3 p-4 bg-white border border-slate-200 rounded-2xl hover:border-blue-500 hover:shadow-lg transition-all active:scale-95 group">
+              <div className={`w-1.5 h-6 rounded-full ${node.color}`} />
+              <span className="text-xs font-black text-slate-600">{node.label}</span>
+              <Plus size={14} className="ml-auto opacity-0 group-hover:opacity-100 text-blue-500" />
             </button>
           ))}
         </div>
-
-        <div className="mt-6 pt-6 border-t border-slate-100">
-          <input
-            className="w-full p-3 bg-slate-100 rounded-xl text-sm mb-3 outline-none focus:ring-2 focus:ring-blue-500 transition-all"
-            placeholder="Workflow Name"
-            value={workflowName}
-            onChange={(e) => setWorkflowName(e.target.value)}
-          />
-          <button
-            onClick={saveWorkflow}
-            className="w-full flex items-center justify-center gap-2 bg-slate-900 text-white p-3 rounded-xl font-bold hover:bg-slate-800 active:scale-95 transition-all shadow-lg shadow-slate-200"
-          >
-            <Save size={18} /> Save Workflow
+        <div className="p-6 border-t bg-white">
+          <button onClick={async () => {
+             const token = localStorage.getItem("accessToken") || localStorage.getItem("accesstoken");
+             const res = await axios.post(`${API_URL}/workflow`, { name: "Live_Flow", nodes, edges, isActive: true }, { headers: { Authorization: `Bearer ${token}` } });
+             setWorkflowId(res.data._id);
+             alert("System Deployed!");
+          }} className="w-full bg-slate-900 text-white p-4 rounded-xl font-black text-xs hover:bg-blue-600 transition-all shadow-xl flex items-center justify-center gap-2 uppercase tracking-widest">
+            <Save size={16} /> Deploy & Active
           </button>
         </div>
       </aside>
 
-      {/* CANVAS AREA */}
-      <main className="flex-grow relative bg-[#F8FAFC]">
+      <main className="flex-grow relative bg-[#F1F5F9]">
         {!isSidebarOpen && (
-          <button
-            onClick={() => setIsSidebarOpen(true)}
-            className="absolute top-4 left-4 z-50 bg-white p-2 rounded-lg shadow-md border hover:bg-slate-50 transition-all"
-          >
-            <Menu size={20} className="text-slate-600" />
-          </button>
+          <button onClick={() => setIsSidebarOpen(true)} className="absolute top-6 left-6 z-50 bg-white p-3 rounded-2xl shadow-xl border border-slate-200 hover:scale-110 transition-all"><Menu size={20} /></button>
         )}
-        <div className="w-full h-full"> {/* Parent container fix */}
-          <ReactFlow
-            nodes={nodes}
-            edges={edges}
-            onNodesChange={onNodesChange}
-            onEdgesChange={onEdgesChange}
-            onConnect={onConnect}
-            fitView
-          >
-            <Background variant="dots" gap={20} color="#cbd5e1" />
-            <Controls />
-          </ReactFlow>
-        </div>
+        <ReactFlow nodes={nodes} edges={edges} onNodesChange={onNodesChange} onEdgesChange={onEdgesChange} onConnect={onConnect} nodeTypes={nodeTypes} fitView>
+          <Background variant="dots" gap={30} color="#cbd5e1" size={1} />
+          <Controls className="!bg-white !shadow-2xl !border-none !rounded-2xl" />
+          <Panel position="top-right" className="p-2">
+             <div className="bg-white/80 backdrop-blur-md p-2 rounded-2xl border border-white shadow-2xl flex gap-2">
+                <div className="flex items-center gap-2 px-4 border-r border-slate-200"><div className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div><span className="text-[10px] font-black text-slate-500 uppercase">System Ready</span></div>
+                <button onClick={runWorkflow} className="flex items-center gap-2 px-6 py-2 bg-slate-900 text-white rounded-xl text-[10px] font-black hover:bg-blue-600 transition-all uppercase tracking-widest">
+                   <Play size={12} fill="currentColor" /> Execute
+                </button>
+             </div>
+          </Panel>
+        </ReactFlow>
       </main>
 
-      {/* CHAT PANEL */}
-      <section className="w-96 bg-white border-l flex flex-col z-20 shadow-xl">
-        <div className="p-5 border-b flex justify-between items-center bg-slate-50">
-          <h2 className="font-bold text-slate-700 flex items-center gap-2"><Terminal size={18} className="text-blue-600" /> Test Console</h2>
-          {workflowId && <span className="text-[10px] font-mono bg-blue-100 text-blue-700 px-2 py-1 rounded">ID: {workflowId.slice(-4)}</span>}
+      <section className="w-80 bg-[#0f172a] flex flex-col z-20 shadow-2xl border-l border-slate-800">
+        <div className="p-6 border-b border-slate-800 flex items-center gap-2 bg-slate-900/50">
+          <Terminal size={18} className="text-blue-400" />
+          <h2 className="font-black text-xs uppercase tracking-widest text-white">Live Execution</h2>
         </div>
-
-        <div className="flex-grow overflow-y-auto p-5 space-y-4">
-          {chatHistory.length === 0 && (
-            <div className="h-full flex flex-col items-center justify-center text-slate-400 opacity-40">
-              <MessageSquare size={48} />
-              <p className="text-xs mt-2 italic font-medium">No messages yet</p>
-            </div>
-          )}
+        <div className="flex-grow overflow-y-auto p-6 space-y-4 custom-scrollbar">
           {chatHistory.map((msg, i) => (
             <div key={i} className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
-              <div className={`max-w-[85%] p-3 rounded-2xl text-sm shadow-sm ${msg.role === "user"
-                ? "bg-blue-600 text-white rounded-br-none"
-                : "bg-slate-100 text-slate-800 border rounded-bl-none"
-                }`}>
+              <div className={`max-w-[90%] p-4 rounded-2xl text-[12px] font-bold ${
+                msg.role === "user" ? "bg-blue-600 text-white rounded-br-none shadow-lg shadow-blue-500/20" : "bg-slate-800 text-slate-200 rounded-bl-none border border-slate-700"
+              }`}>
                 {msg.text}
               </div>
             </div>
           ))}
         </div>
-
-        <div className="p-5 border-t bg-white">
-          <div className="flex items-center gap-2 bg-slate-100 p-2 rounded-2xl focus-within:ring-2 focus-within:ring-blue-400 transition-all shadow-inner">
-            <input
-              className="flex-grow bg-transparent border-none outline-none p-2 text-sm text-slate-700"
-              placeholder="Type your prompt..."
-              value={chatInput}
-              onChange={(e) => setChatInput(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && runWorkflow()}
-            />
-            <button
-              onClick={runWorkflow}
-              className="bg-blue-600 text-white p-2.5 rounded-xl hover:bg-blue-700 active:scale-90 transition-all shadow-md shadow-blue-100"
-            >
-              <Send size={18} />
-            </button>
+        <div className="p-6 bg-slate-900/80 border-t border-slate-800">
+          <div className="flex items-center gap-2 bg-slate-800 p-2 rounded-2xl border border-slate-700 focus-within:border-blue-500 transition-all mb-4">
+            <input className="flex-grow bg-transparent border-none outline-none p-2 text-xs font-bold text-white" placeholder="Type prompt..." value={chatInput} onChange={(e) => setChatInput(e.target.value)} onKeyDown={(e) => e.key === "Enter" && runWorkflow()} />
+            <button onClick={runWorkflow} className="bg-blue-600 text-white p-2.5 rounded-xl hover:scale-105 transition-all"><Send size={16} /></button>
           </div>
-          <div className="mt-4 bg-slate-900 rounded-lg p-3 h-24 overflow-y-auto font-mono text-[10px] text-green-400 shadow-inner custom-scrollbar">
-            {logs.map((log, i) => <div key={i} className="mb-1 opacity-80">{log}</div>)}
+          <div className="bg-black/40 rounded-xl p-4 h-32 overflow-y-auto font-mono text-[9px] text-emerald-400 border border-slate-800">
+            {logs.map((log, i) => <div key={i} className="mb-1.5 opacity-80 leading-relaxed font-medium tracking-tight whitespace-pre-wrap flex gap-2">
+                <span className="text-slate-600 shrink-0">{i+1}</span>
+                <span>{log}</span>
+            </div>)}
           </div>
         </div>
       </section>
