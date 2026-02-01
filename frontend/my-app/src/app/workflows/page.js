@@ -69,7 +69,7 @@ export default function BuilderPage() {
           edges,
           isActive: true
         },
-        { headers: { Authorization: `Bearer ${token}` } }
+        { headers: { Authorization: `Berer ${token}` } }
       );
       setWorkflowId(res.data._id);
       alert("Workflow Saved & Activated!");
@@ -98,7 +98,7 @@ export default function BuilderPage() {
           workflowId: workflowId,
           input: { query: currentInput }
         },
-        { headers: { Authorization: `Bearer ${token}` } }
+        { headers: { Authorization: `Berer ${token}` } }
       );
 
       const aiResult = res.data.output?.result || res.data.output || "No response from AI Engine";

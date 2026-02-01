@@ -9,7 +9,7 @@ const Navbar = () => {
 
   const handleLogout = async () => {
     try {
-      const res = await fetch("http://localhost:8000/api/v1/users/logout", {
+      const res = await fetch("http://localhost:4000/api/v1/users/logout", {
         method: "POST",
       });
       if (res.ok) {
@@ -23,7 +23,7 @@ const Navbar = () => {
 
   return (
     <nav className="flex justify-between items-center px-10 py-4 bg-white shadow-md">
-      <Link href="/" className="text-xl font-bold text-blue-600">MY N8N APP</Link>
+      <Link href="/" className="text-xl font-bold text-blue-600">FlowAI</Link>
       
       <div className="flex gap-6 items-center">
         {/* <Link href="/">Home</Link> */}

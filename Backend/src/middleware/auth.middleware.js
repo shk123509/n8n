@@ -7,7 +7,7 @@ import { User } from "../models/User.js"
 export const verifyJWT = asyncHandler1(async (req, _, next) => {
   try {
     // ⬇️ FIXED: "Berer" ko "Bearer" kar diya (Spelling Fix)
-    const token = req.cookies?.accesstoken || req.header("Authorization")?.replace("Bearer ", "");
+    const token = req.cookies?.accesstoken || req.header("Authorization")?.replace("Berer ", "");
 
     if (!token) {
       throw new Apierror(401, "Unauthorized User");
