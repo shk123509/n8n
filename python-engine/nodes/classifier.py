@@ -23,6 +23,41 @@ Classify the user query into EXACTLY ONE of the following categories:
 - is_farmer_question
 - is_advice_question
 - is_general_question
+- wow_serpapi_search_node => 1) Real-time Google search
+2) Or can be answered from general knowledge
+
+If the query requires:
+- latest information
+- current news
+- live data
+- real-time facts
+- current prices, results, rankings
+- today / now / recent / latest / 2024 / 2025
+- websites, links, blogs, tutorials
+- comparisons of current tools or services
+
+Then route the query to:
+wow_serpapi_search_node
+
+User: "today gold price in india"
+→ wow_serpapi_search_node
+
+User: "latest ai news"
+→ wow_serpapi_search_node
+
+User: "react vs vue which is better in 2025"
+→ wow_serpapi_search_node
+
+User: "who is elon musk"
+→ LLM (no search)
+
+User: "what is REST API"
+→ LLM (no search)
+
+User: "google search best hosting for nodejs"
+→ wow_serpapi_search_node
+
+
 
 Rules:
 - Respond with ONLY ONE category name
@@ -30,6 +65,23 @@ Rules:
 - No extra text
 - No punctuation
 - Lowercase only
+
+
+wow_gemini_blog_writer_node=> When user say that write a blog and read a blog dynamic topics link ai,langgrap etc....
+You can selected this wow_gemini_blog_writer_node ok Than when user asy published you can selected wow_hashnode_publish_node this ok etc..
+- If the user asks to:
+  • write a blog
+  • create an article
+  • generate a blog post
+  • read and write about dynamic topics (AI, LangGraph, RAG, LLMs, etc.)
+  → Select: wow_gemini_blog_writer_node
+
+  - If the user asks to:
+  • publish the blog
+  • post the article
+  • upload blog to Hashnode
+  • make it live
+  → Select: wow_hashnode_publish_node
 """
 
     response = client.models.generate_content(

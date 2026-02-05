@@ -7,6 +7,9 @@ from nodes.doctor import is_doctor_question
 from nodes.farmer import is_farmer_question
 from nodes.advice import is_advice_question
 from nodes.general import is_general_question
+from nodes.google_serach import wow_serpapi_search_node
+from nodes.blogs import wow_gemini_blog_writer_node
+from nodes.published import wow_hashnode_publish_node
 
 def build_graph():
     graph = StateGraph(State)
@@ -17,6 +20,9 @@ def build_graph():
     graph.add_node("farmer", is_farmer_question)
     graph.add_node("advice", is_advice_question)
     graph.add_node("general", is_general_question)
+    graph.add_node("google_serach", wow_serpapi_search_node)
+    graph.add_node("blogs", wow_gemini_blog_writer_node)
+    graph.add_node("published", wow_hashnode_publish_node)
 
     graph.add_edge(START, "classify")
 
@@ -29,6 +35,9 @@ def build_graph():
             "is_farmer_question": "farmer",
             "is_advice_question": "advice",
             "is_general_question": "general",
+            "wow_serpapi_search_node" : "google_serach",
+            "wow_gemini_blog_writer_node" : "blogs",
+            "wow_hashnode_publish_node" : "published"
         }
     )
 
@@ -37,5 +46,9 @@ def build_graph():
     graph.add_edge("farmer", END)
     graph.add_edge("advice", END)
     graph.add_edge("general", END)
+    graph.add_edge("google_serach", END)
+    graph.add_edge("blogs", "published")
+    graph.add_edge("published", END)
+  
 
     return graph.compile()
