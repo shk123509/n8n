@@ -82,6 +82,10 @@ You can selected this wow_gemini_blog_writer_node ok Than when user asy publishe
   • upload blog to Hashnode
   • make it live
   → Select: wow_hashnode_publish_node
+
+1. connect_mongo_db   →  user ask connect you can selected this nodes connect_mongo_db not other nodes ok examples (connect, insert, db, connect, etc...) you can selected ok  ok use  when user wants to connect to database or mentions database, MongoDB, DB, URL you can pick this nodes connect_mongo_db
+2. insinsert_data_nodeert_data  → use when user wants to save, add, insert, store, create a task or data pick insert_data_node
+3. read_data_node    → use when user wants to read, fetch, show, get, list data from database pick read_data_node
 """
 
     response = client.models.generate_content(

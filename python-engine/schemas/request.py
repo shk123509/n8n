@@ -7,3 +7,4 @@ class QueryRequest(BaseModel):
         min_length=1,
         description="User input query (question / problem / request)"
     )
+    

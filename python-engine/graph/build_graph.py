@@ -10,6 +10,11 @@ from nodes.general import is_general_question
 from nodes.google_serach import wow_serpapi_search_node
 from nodes.blogs import wow_gemini_blog_writer_node
 from nodes.published import wow_hashnode_publish_node
+from nodes.mongoose import connect_mongo_db
+from nodes.insert import insert_data_node
+from nodes.read_node import read_data_node
+
+
 
 def build_graph():
     graph = StateGraph(State)
@@ -23,6 +28,10 @@ def build_graph():
     graph.add_node("google_serach", wow_serpapi_search_node)
     graph.add_node("blogs", wow_gemini_blog_writer_node)
     graph.add_node("published", wow_hashnode_publish_node)
+    graph.add_node("mongoose", connect_mongo_db)
+    graph.add_node("insert", insert_data_node)
+    graph.add_node("read_node", read_data_node)
+    
 
     graph.add_edge(START, "classify")
 
@@ -37,7 +46,10 @@ def build_graph():
             "is_general_question": "general",
             "wow_serpapi_search_node" : "google_serach",
             "wow_gemini_blog_writer_node" : "blogs",
-            "wow_hashnode_publish_node" : "published"
+            "wow_hashnode_publish_node" : "published",
+            "connect_mongo_db" : "mongoose",
+            "insert_data_node" : "insert",
+            "read_data_node" : "read_node"
         }
     )
 
@@ -49,6 +61,9 @@ def build_graph():
     graph.add_edge("google_serach", END)
     graph.add_edge("blogs", "published")
     graph.add_edge("published", END)
+    graph.add_edge("mongoose", "insert")
+    graph.add_edge("insert", "read_node")
+    graph.add_edge("read_node", END)
   
 
     return graph.compile()
