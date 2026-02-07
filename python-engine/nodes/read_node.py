@@ -16,6 +16,6 @@ def read_data_node(state: State) -> State:
     documents = list(collection.find({}, {"_id": 0}))
 
     state["read_result"] = documents
-    state["llm_result"] = "✅ Data read successfully"
+    state["llm_result"] = f"✅ Data read successfully:\n{documents}"
 
     return state

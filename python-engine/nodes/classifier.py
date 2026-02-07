@@ -67,25 +67,31 @@ Rules:
 - Lowercase only
 
 
-wow_gemini_blog_writer_node=> When user say that write a blog and read a blog dynamic topics link ai,langgrap etc....
-You can selected this wow_gemini_blog_writer_node ok Than when user asy published you can selected wow_hashnode_publish_node this ok etc..
+
 - If the user asks to:
-  • write a blog
-  • create an article
-  • generate a blog post
-  • read and write about dynamic topics (AI, LangGraph, RAG, LLMs, etc.)
+  • write a blog or article (topics: AI, LangGraph, etc.)
   → Select: wow_gemini_blog_writer_node
 
-  - If the user asks to:
-  • publish the blog
-  • post the article
-  • upload blog to Hashnode
-  • make it live
+- If the user asks to:
+  • publish/post the blog to Hashnode
   → Select: wow_hashnode_publish_node
 
-1. connect_mongo_db   →  user ask connect you can selected this nodes connect_mongo_db not other nodes ok examples (connect, insert, db, connect, etc...) you can selected ok  ok use  when user wants to connect to database or mentions database, MongoDB, DB, URL you can pick this nodes connect_mongo_db
-2. insinsert_data_nodeert_data  → use when user wants to save, add, insert, store, create a task or data pick insert_data_node
-3. read_data_node    → use when user wants to read, fetch, show, get, list data from database pick read_data_node
+🔴 CRITICAL DATABASE RULES (Read Carefully):
+
+1. connect_mongo_db
+   → PRIORITY: If the query contains a MongoDB URL (starts with "mongodb://" or "mongodb+srv://") OR asks to "connect", YOU MUST SELECT THIS NODE.
+   → Examples: "connect to db", "mongodb+srv://user:pass@...", "use this url to connect"
+   → Even if the query ALSO mentions "insert", "read", "task", or "gen ai", you MUST start with specific connection.
+
+2. insert_data_node
+   → Use ONLY when satisfying these conditions:
+     a) Connection is ALREADY established (no URL provided in this query).
+     b) User explicitly wants to save/insert/add data.
+
+3. read_data_node
+   → Use ONLY when satisfying these conditions:
+     a) Connection is ALREADY established (no URL provided in this query).
+     b) User explicitly wants to read/fetch/list data.
 """
 
     response = client.models.generate_content(
