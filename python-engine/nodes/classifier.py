@@ -13,85 +13,192 @@ def classification_query(state: State) -> State:
     query = state["query"]
 
     SYSTEM_PROMPT = """
-You are a query classification AI.
+You are a strict query classification AI.
 
 Your task:
-Classify the user query into EXACTLY ONE of the following categories:
+You MUST classify the user query into EXACTLY ONE category from the list below.
+
+----------------------------------
+AVAILABLE CATEGORIES
+----------------------------------
 
 - is_coding_question
 - is_doctor_question
 - is_farmer_question
 - is_advice_question
 - is_general_question
-- wow_serpapi_search_node => 1) Real-time Google search
-2) Or can be answered from general knowledge
+- wow_serpapi_search_node
+- live_train_status_node
+- wow_gemini_blog_writer_node
+- wow_hashnode_publish_node
+- youtube_video_summary_node
+- find_jobs_from_query_node
 
-If the query requires:
-- latest information
-- current news
-- live data
-- real-time facts
-- current prices, results, rankings
-- today / now / recent / latest / 2024 / 2025
-- websites, links, blogs, tutorials
-- comparisons of current tools or services
+----------------------------------
+STRICT RESPONSE RULES
+----------------------------------
 
-Then route the query to:
-wow_serpapi_search_node
-
-User: "today gold price in india"
-→ wow_serpapi_search_node
-
-User: "latest ai news"
-→ wow_serpapi_search_node
-
-User: "react vs vue which is better in 2025"
-→ wow_serpapi_search_node
-
-User: "who is elon musk"
-→ LLM (no search)
-
-User: "what is REST API"
-→ LLM (no search)
-
-User: "google search best hosting for nodejs"
-→ wow_serpapi_search_node
-
-
-
-Rules:
 - Respond with ONLY ONE category name
-- No explanations
+- No explanation
 - No extra text
 - No punctuation
 - Lowercase only
+- Never return multiple categories
+
+----------------------------------
+JOB / INTERNSHIP SEARCH RULE (HIGH PRIORITY)
+----------------------------------
+
+Route the query to:
+job_search_node
+
+IF the user:
+- asks for jobs or internships
+- wants fresh hiring information
+- wants jobs by skill, role, company, or location
+- mentions words like:
+  job, jobs, hiring, internship, intern, vacancy, openings, career, fresher jobs
+
+Examples:
+- "find python developer jobs"
+- "internship for data science students"
+- "latest jobs for freshers"
+- "nodejs developer hiring in india"
+- "remote internships for students"
+
+→ job_search_node
+
+----------------------------------
+REAL-TIME / SEARCH RULE
+----------------------------------
+
+Route the query to:
+wow_serpapi_search_node
+
+IF the query requires ANY of the following:
+- latest / recent / today / now
+- current prices, rankings, results
+- live data or real-time facts
+- news or updates (2024 / 2025)
+- comparisons of current tools or services
+- websites, links, blogs, tutorials
+- explicit Google or search intent
+
+Examples:
+- "today gold price in india"
+- "latest ai news"
+- "react vs vue which is better in 2025"
+- "best hosting for nodejs"
+
+→ wow_serpapi_search_node
+
+----------------------------------
+GENERAL KNOWLEDGE RULE
+----------------------------------
+
+If the question can be answered using general knowledge
+AND does NOT require real-time data:
+
+Examples:
+- "who is elon musk"
+- "what is rest api"
+
+→ is_general_question
+
+----------------------------------
+VIDEO SUMMARY RULE (NEW)
+----------------------------------
+
+Route the query to:
+summarize_videos_node
+
+IF the query:
+- asks to summarize a video
+- asks for notes from a video
+- asks for key points / takeaways from a video
+- includes a YouTube link
+- includes words like:
+  video, youtube, summarize video, video summary, explain this video
+
+Examples:
+- "summarize this youtube video https://youtube.com/..."
+- "give notes from this video"
+- "explain this youtube video"
+- "key takeaways from this video link"
+
+→ summarize_videos_node
+
+----------------------------------
+BLOG WRITING RULE
+----------------------------------
+
+If the user asks to:
+- write a blog
+- generate an article
+- long-form content (AI, LangGraph, Tech, etc.)
+
+→ wow_gemini_blog_writer_node
+
+----------------------------------
+BLOG PUBLISHING RULE
+----------------------------------
+
+If the user asks to:
+- publish
+- post
+- upload a blog to Hashnode
+
+→ wow_hashnode_publish_node
+
+----------------------------------
+DATABASE RULES (CRITICAL – HIGHEST PRIORITY)
+----------------------------------
+
+1️⃣ connect_mongo_db  
+If the query:
+- contains a MongoDB URL (mongodb:// or mongodb+srv://)
+- OR asks to connect a database
+
+→ ALWAYS select: connect_mongo_db
+
+2️⃣ insert_data_node  
+Use ONLY if:
+- DB connection is already established
+- User explicitly wants to insert/save/add data
+
+3️⃣ read_data_node  
+Use ONLY if:
+- DB connection is already established
+- User explicitly wants to read/fetch/list data
+
+----------------------------------
+TRAIN LIVE STATUS RULE (SPECIAL)
+----------------------------------
+
+Route to:
+live_train_status_node
+
+ONLY IF ALL conditions match:
+- Query mentions train-related keywords:
+  train, status, running, live
+- AND contains a 4–5 digit number (train number)
+
+Examples:
+- "find train status 12303"
+- "train 12951 live running status"
+- "12322 kaha pahunchi?"
+
+→ live_train_status_node
+
+----------------------------------
+DEFAULT FALLBACK RULE
+----------------------------------
+
+If none of the above rules apply:
+→ is_general_question
 
 
 
-- If the user asks to:
-  • write a blog or article (topics: AI, LangGraph, etc.)
-  → Select: wow_gemini_blog_writer_node
-
-- If the user asks to:
-  • publish/post the blog to Hashnode
-  → Select: wow_hashnode_publish_node
-
-🔴 CRITICAL DATABASE RULES (Read Carefully):
-
-1. connect_mongo_db
-   → PRIORITY: If the query contains a MongoDB URL (starts with "mongodb://" or "mongodb+srv://") OR asks to "connect", YOU MUST SELECT THIS NODE.
-   → Examples: "connect to db", "mongodb+srv://user:pass@...", "use this url to connect"
-   → Even if the query ALSO mentions "insert", "read", "task", or "gen ai", you MUST start with specific connection.
-
-2. insert_data_node
-   → Use ONLY when satisfying these conditions:
-     a) Connection is ALREADY established (no URL provided in this query).
-     b) User explicitly wants to save/insert/add data.
-
-3. read_data_node
-   → Use ONLY when satisfying these conditions:
-     a) Connection is ALREADY established (no URL provided in this query).
-     b) User explicitly wants to read/fetch/list data.
 """
 
     response = client.models.generate_content(
@@ -112,3 +219,8 @@ Rules:
 
 def route(state: State) -> str:
     return state["route"]
+
+
+
+
+

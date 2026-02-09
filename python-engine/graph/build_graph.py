@@ -13,6 +13,9 @@ from nodes.published import wow_hashnode_publish_node
 from nodes.mongoose import connect_mongo_db
 from nodes.insert import insert_data_node
 from nodes.read_node import read_data_node
+from nodes.get_live_train_status import live_train_status_node
+from nodes.summerize_videos import youtube_video_summary_node
+from nodes.job import find_jobs_from_query_node
 
 
 
@@ -31,6 +34,9 @@ def build_graph():
     graph.add_node("mongoose", connect_mongo_db)
     graph.add_node("insert", insert_data_node)
     graph.add_node("read_node", read_data_node)
+    graph.add_node("get_live_train_status", live_train_status_node)
+    graph.add_node("summerize_videos", youtube_video_summary_node)
+    graph.add_node("job", find_jobs_from_query_node)
     
 
     graph.add_edge(START, "classify")
@@ -49,7 +55,10 @@ def build_graph():
             "wow_hashnode_publish_node" : "published",
             "connect_mongo_db" : "mongoose",
             "insert_data_node" : "insert",
-            "read_data_node" : "read_node"
+            "read_data_node" : "read_node",
+            "live_train_status_node" : "get_live_train_status",
+            "youtube_video_summary_node" : "summerize_videos",
+            "find_jobs_from_query_node" : "job"
         }
     )
 
@@ -64,6 +73,9 @@ def build_graph():
     graph.add_edge("mongoose", "insert")
     graph.add_edge("insert", "read_node")
     graph.add_edge("read_node", END)
+    graph.add_edge("get_live_train_status", END)
+    graph.add_edge("summerize_videos", END)
+    graph.add_edge("job", END)
   
 
     return graph.compile()
