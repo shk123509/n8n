@@ -29,10 +29,13 @@ AVAILABLE CATEGORIES
 - is_general_question
 - wow_serpapi_search_node
 - live_train_status_node
+- flight_status_node
+- crypto_stock_price_node
+- weather_node
+- job_search_node
 - wow_gemini_blog_writer_node
 - wow_hashnode_publish_node
 - youtube_video_summary_node
-- find_jobs_from_query_node
 
 ----------------------------------
 STRICT RESPONSE RULES
@@ -44,6 +47,53 @@ STRICT RESPONSE RULES
 - No punctuation
 - Lowercase only
 - Never return multiple categories
+
+----------------------------------
+WEATHER RULE
+----------------------------------
+
+Route the query to:
+weather_node
+
+IF the user:
+- asks about weather
+- asks temperature
+- asks climate
+- asks rain forecast
+- mentions city + weather
+- uses words like:
+  weather, temperature, forecast, climate, rain, humidity, wind
+
+Examples:
+- "weather in delhi"
+- "today temperature in mumbai"
+- "is it raining in london?"
+- "current weather in dubai"
+
+→ weather_node
+
+----------------------------------
+CRYPTO / STOCK PRICE RULE (HIGH PRIORITY)
+----------------------------------
+
+This rule has HIGHER priority than REAL-TIME / SEARCH rule.
+
+Route the query to:
+crypto_stock_price_node
+
+IF the user:
+- asks for crypto or stock price
+- mentions bitcoin, ethereum, shares, stock
+- asks market value
+- even if words like "today" or "now" are present
+
+Examples:
+- "bitcoin price now"
+- "eth price today"
+- "tcs share price"
+- "apple stock price today"
+
+→ crypto_stock_price_node
 
 ----------------------------------
 JOB / INTERNSHIP SEARCH RULE (HIGH PRIORITY)
@@ -67,6 +117,35 @@ Examples:
 - "remote internships for students"
 
 → job_search_node
+
+----------------------------------
+FLIGHT STATUS RULE (HIGH PRIORITY)
+----------------------------------
+
+Route the query to:
+flight_status_node
+
+IF the query:
+- asks for flight status
+- mentions flight delay, arrival, departure
+- includes airline + flight number
+
+Keywords:
+flight, airline, delayed, arrived, departed, boarding, gate, terminal, status
+
+Flight number pattern examples:
+- AI302
+- AS2223
+- 6E213
+- EK202
+
+Examples:
+- "check flight ai302 status"
+- "flight as2223 arrived or not"
+- "indigo 6e213 live status"
+- "emirates ek202 delay"
+
+→ flight_status_node
 
 ----------------------------------
 REAL-TIME / SEARCH RULE

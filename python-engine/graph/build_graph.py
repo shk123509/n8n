@@ -16,6 +16,9 @@ from nodes.read_node import read_data_node
 from nodes.get_live_train_status import live_train_status_node
 from nodes.summerize_videos import youtube_video_summary_node
 from nodes.job import find_jobs_from_query_node
+from nodes.flight import flight_status_node
+from nodes.weather_node import weather_node
+from nodes.prices import crypto_stock_price_node
 
 
 
@@ -37,6 +40,9 @@ def build_graph():
     graph.add_node("get_live_train_status", live_train_status_node)
     graph.add_node("summerize_videos", youtube_video_summary_node)
     graph.add_node("job", find_jobs_from_query_node)
+    graph.add_node("flight", flight_status_node)
+    graph.add_node("weather_node", weather_node)
+    graph.add_node("prices", crypto_stock_price_node)
     
 
     graph.add_edge(START, "classify")
@@ -58,7 +64,10 @@ def build_graph():
             "read_data_node" : "read_node",
             "live_train_status_node" : "get_live_train_status",
             "youtube_video_summary_node" : "summerize_videos",
-            "find_jobs_from_query_node" : "job"
+            "find_jobs_from_query_node" : "job",
+            "flight_status_node" : "flight",
+            "weather_node" : "weather_node",
+            "crypto_stock_price_node" : "prices"
         }
     )
 
@@ -76,6 +85,9 @@ def build_graph():
     graph.add_edge("get_live_train_status", END)
     graph.add_edge("summerize_videos", END)
     graph.add_edge("job", END)
+    graph.add_edge("flight", END)
+    graph.add_edge("weather_node", END)
+    graph.add_edge("prices", END)
   
 
     return graph.compile()
