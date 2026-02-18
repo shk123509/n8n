@@ -20,7 +20,8 @@ graph = build_graph()   # 🔥 graph ek baar load hota hai
 def execute(req: QueryRequest):
     state = {
         "query": req.query,
-        "route": ""   # important for conditional routing
+        "route": "",   # important for conditional routing
+        "user_api_key": req.user_api_key
     }
 
     result = graph.invoke(state)

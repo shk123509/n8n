@@ -6,16 +6,22 @@ from google import genai
 from urllib.parse import urlparse, parse_qs
 from youtube_transcript_api import YouTubeTranscriptApi, TranscriptsDisabled
 
-load_dotenv()
 
-GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
-gemini_client = genai.Client(api_key=GEMINI_API_KEY)
 
 
 def youtube_video_summary_node(state: State) -> State:
     print("🎥 YouTube Video Summary node running")
 
     query = state["query"]
+
+    user_key = state.get("user_api_key")
+
+    if not user_key:
+        state["llm_result"] = "Error: API Key missing in Python Engine."
+        return state
+    
+
+    client = genai.Client(api_key=user_key)
 
     # 1️⃣ Extract video ID
     video_id = None
@@ -95,7 +101,7 @@ Content:
 """
 
     # 5️⃣ Gemini call
-    response = gemini_client.models.generate_content(
+    response = client.models.generate_content(
         model="gemini-flash-latest",
         contents=prompt
     )

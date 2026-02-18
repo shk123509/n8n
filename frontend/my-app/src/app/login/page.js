@@ -30,7 +30,7 @@ export default function Login() {
       }
 
       login(data);
-      router.push("/");
+      router.push("/workflows");
     } catch (err) {
       console.error("Login error:", err);
     } finally {

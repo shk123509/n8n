@@ -19,6 +19,13 @@ from nodes.job import find_jobs_from_query_node
 from nodes.flight import flight_status_node
 from nodes.weather_node import weather_node
 from nodes.prices import crypto_stock_price_node
+from nodes.company_info import company_info_node
+from nodes.course_find import course_finder_node
+from nodes.product_price import product_price_compare_node
+from nodes.vehicle_info import vehicle_info_node
+from nodes.expesive_track import expense_tracker_node
+from nodes.courier import courier_tracking_node
+from nodes.bank import bank_ifsc_micr_node
 
 
 
@@ -43,6 +50,13 @@ def build_graph():
     graph.add_node("flight", flight_status_node)
     graph.add_node("weather_node", weather_node)
     graph.add_node("prices", crypto_stock_price_node)
+    graph.add_node("company_info", company_info_node)
+    graph.add_node("course_find", course_finder_node)
+    graph.add_node("product_price", product_price_compare_node)
+    graph.add_node("vehicle_info", vehicle_info_node)
+    graph.add_node("expesive_track", expense_tracker_node)
+    graph.add_node("courier", courier_tracking_node)
+    graph.add_node("bank", bank_ifsc_micr_node)
     
 
     graph.add_edge(START, "classify")
@@ -67,7 +81,15 @@ def build_graph():
             "find_jobs_from_query_node" : "job",
             "flight_status_node" : "flight",
             "weather_node" : "weather_node",
-            "crypto_stock_price_node" : "prices"
+            "crypto_stock_price_node" : "prices",
+            "company_info_node" : "company_info",
+            "course_finder_node" : "course_find",
+            "product_price_compare_node" : "product_price",
+            "vehicle_info_node" : "vehicle_info",
+            "expense_tracker_node" : "expesive_track",
+            "courier_tracking_node" : "courier",
+            "bank_ifsc_micr_node" : "bank"
+            
         }
     )
 
@@ -88,6 +110,13 @@ def build_graph():
     graph.add_edge("flight", END)
     graph.add_edge("weather_node", END)
     graph.add_edge("prices", END)
+    graph.add_edge("company_info", END)
+    graph.add_edge("course_find", END)
+    graph.add_edge("product_price", END)
+    graph.add_edge("vehicle_info", END)
+    graph.add_edge("expesive_track", END)
+    graph.add_edge("courier", END)
+    graph.add_edge("bank", END)
   
 
     return graph.compile()

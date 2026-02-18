@@ -1,16 +1,19 @@
-import os
-from dotenv import load_dotenv
 from google import genai
 from graph.state import State
-
-load_dotenv()
 
 
 
 def wow_gemini_blog_writer_node(state: State) -> State:
     print("✍️ WOW Gemini Blog Writer running")
 
-    client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
+    user_key = state.get("user_api_key")
+
+    if not user_key:
+        state["llm_result"] = "Error: API Key missing in Python Engine."
+        return state
+    
+
+    client = genai.Client(api_key=user_key)
 
     prompt = f"""
 You are a professional technical blogger.

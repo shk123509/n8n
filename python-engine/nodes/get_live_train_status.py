@@ -9,15 +9,22 @@ from google import genai
 load_dotenv()
 
 RAPID_API_KEY = os.getenv("RAPID_API_KEY")
-GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 
-gemini_client = genai.Client(api_key=GEMINI_API_KEY)
 
 
 def live_train_status_node(state: State) -> State:
     print("🚆 Live Train Status node running")
 
     query = state["query"]
+
+    user_key = state.get("user_api_key")
+
+    if not user_key:
+        state["llm_result"] = "Error: API Key missing in Python Engine."
+        return state
+    
+
+    client = genai.Client(api_key=user_key)
 
     # 1️⃣ Extract train number
     match = re.search(r"\b\d{4,5}\b", query)
@@ -81,7 +88,7 @@ Train data:
 """
 
     # 5️⃣ Gemini LLM call
-    response = gemini_client.models.generate_content(
+    response = client.models.generate_content(
         model="gemini-flash-latest",
         contents=prompt
     )

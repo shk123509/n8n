@@ -8,15 +8,22 @@ from google import genai
 load_dotenv()
 
 RAPID_API_KEY = os.getenv("RAPID_API_KEY")
-GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 
-gemini_client = genai.Client(api_key=GEMINI_API_KEY)
 
 
 def find_jobs_from_query_node(state: State) -> State:
     print("💼 Job Search node running")
 
     user_query = state["query"]
+
+    user_key = state.get("user_api_key")
+
+    if not user_key:
+        state["llm_result"] = "Error: API Key missing in Python Engine."
+        return state
+    
+
+    client = genai.Client(api_key=user_key)
 
     # 1️⃣ CLEAN USER QUERY USING GEMINI (MOST IMPORTANT FIX)
     intent_prompt = f"""
@@ -34,7 +41,7 @@ User text:
 Return ONLY the cleaned job query.
 """
 
-    intent_response = gemini_client.models.generate_content(
+    intent_response = client.models.generate_content(
         model="gemini-flash-latest",
         contents=intent_prompt
     )
@@ -113,7 +120,7 @@ Job Data:
 {json.dumps(raw_jobs, indent=2)}
 """
 
-    response = gemini_client.models.generate_content(
+    response = client.models.generate_content(
         model="gemini-flash-latest",
         contents=prompt
     )

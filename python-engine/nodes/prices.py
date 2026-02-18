@@ -8,15 +8,22 @@ from google import genai
 load_dotenv()
 
 RAPID_API_KEY = os.getenv("RAPID_API_KEY")
-GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 
-gemini_client = genai.Client(api_key=GEMINI_API_KEY)
 
 
 def crypto_stock_price_node(state: State) -> State:
     print("💰 Crypto / Stock Price node running")
 
     user_query = state["query"]
+
+    user_key = state.get("user_api_key")
+
+    if not user_key:
+        state["llm_result"] = "Error: API Key missing in Python Engine."
+        return state
+    
+
+    client = genai.Client(api_key=user_key)
 
     # --------------------------------------------------
     # 1️⃣ Extract symbol using Gemini
@@ -36,7 +43,7 @@ User text:
 """
 
     try:
-        intent_response = gemini_client.models.generate_content(
+        intent_response = client.models.generate_content(
             model="gemini-flash-latest",
             contents=intent_prompt
         )
@@ -149,7 +156,7 @@ Market Data:
 """
 
     try:
-        llm_response = gemini_client.models.generate_content(
+        llm_response = client.models.generate_content(
             model="gemini-flash-latest",
             contents=summary_prompt
         )

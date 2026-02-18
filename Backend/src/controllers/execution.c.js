@@ -7,7 +7,8 @@ import Workflow from "../models/workflow.js";
  */
 export const createExecution = async (req, res) => {
   try {
-    const { workflowId, input } = req.body;
+    // 🔑 req.body se user_api_key nikaalna zaroori hai
+    const { workflowId, input, user_api_key } = req.body;
     const userId = req.user._id;
 
     const workflow = await Workflow.findOne({
@@ -20,7 +21,7 @@ export const createExecution = async (req, res) => {
       return res.status(404).json({ message: "Active workflow not found" });
     }
 
-    // create execution
+    // create execution record
     const execution = await Execution.create({
       workflowId,
       userId,
@@ -29,13 +30,15 @@ export const createExecution = async (req, res) => {
       logs: [{ message: "Execution started", time: new Date() }]
     });
 
-    // 🔥 CALL PYTHON ENGINE
+    // 🔥 CALL PYTHON ENGINE (Sahi Data bhej rahe hain ab)
     const pyRes = await axios.post("http://127.0.0.1:8000/execute", {
       nodes: workflow.nodes,
       edges: workflow.edges,
-      query: input.query || input
+      query: input.query || input,
+      user_api_key: user_api_key // 🚀 Ye Python ke QueryRequest model mein jayega
     });
 
+    // Python se aane wala data save karo
     execution.output = {
       result: pyRes.data.result,
       route: pyRes.data.route
@@ -53,7 +56,6 @@ export const createExecution = async (req, res) => {
     console.error("Execution Controller Error:", err.message);
     if (err.response) {
       console.error("Python Engine Error Data:", err.response.data);
-      console.error("Python Engine Status:", err.response.status);
     }
     res.status(500).json({ message: "Execution failed", error: err.message });
   }
@@ -63,37 +65,43 @@ export const createExecution = async (req, res) => {
  * 📄 Get all executions
  */
 export const getAllExecutions = async (req, res) => {
-  const executions = await Execution.find({ userId: req.user._id })
-    .select("-logs")
-    .sort({ createdAt: -1 });
-
-  res.json(executions);
+  try {
+    const executions = await Execution.find({ userId: req.user._id })
+      .select("-logs")
+      .sort({ createdAt: -1 });
+    res.json(executions);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
 };
 
 /**
  * 🔍 Get execution by id
  */
 export const getExecutionById = async (req, res) => {
-  const execution = await Execution.findOne({
-    _id: req.params.id,
-    userId: req.user._id
-  });
-
-  if (!execution) {
-    return res.status(404).json({ message: "Execution not found" });
+  try {
+    const execution = await Execution.findOne({
+      _id: req.params.id,
+      userId: req.user._id
+    });
+    if (!execution) return res.status(404).json({ message: "Not found" });
+    res.json(execution);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
   }
-
-  res.json(execution);
 };
 
 /**
  * ❌ Delete execution
  */
 export const deleteExecution = async (req, res) => {
-  await Execution.findOneAndDelete({
-    _id: req.params.id,
-    userId: req.user._id
-  });
-
-  res.json({ message: "Execution deleted" });
+  try {
+    await Execution.findOneAndDelete({
+      _id: req.params.id,
+      userId: req.user._id
+    });
+    res.json({ message: "Execution deleted" });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
 };

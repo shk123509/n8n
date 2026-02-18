@@ -5,7 +5,7 @@ from google import genai
 from graph.state import State
 
 load_dotenv()
-client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
+
 
 
 def insert_data_node(state: State) -> State:
@@ -14,6 +14,15 @@ def insert_data_node(state: State) -> State:
     mongo_client = state.get("mongo_client")
     data = state.get("data_to_insert")
     query = state.get("query")
+
+    user_key = state.get("user_api_key")
+
+    if not user_key:
+        state["llm_result"] = "Error: API Key missing in Python Engine."
+        return state
+    
+
+    client = genai.Client(api_key=user_key)
 
     if not mongo_client:
         state["llm_result"] = "❌ Mongo client not found. Connect DB first."

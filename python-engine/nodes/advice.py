@@ -1,16 +1,20 @@
-import os
-from dotenv import load_dotenv
 from google import genai
 from graph.state import State
 
-load_dotenv()
-
-client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
 
 def is_advice_question(state: State) -> State:
     print("🧠 advice node running")
 
     query = state["query"]
+
+    user_key = state.get("user_api_key")
+
+    if not user_key:
+        state["llm_result"] = "Error: API Key missing in Python Engine."
+        return state
+    
+
+    client = genai.Client(api_key=user_key)
 
     SYSTEM_PROMPT = """
 You are an Advice AI Assistant.

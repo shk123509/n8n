@@ -2,7 +2,10 @@ from typing import TypedDict, Any, Dict, List
 
 
 class State(TypedDict, total=False):
-    # user input / routing
+
+    user_api_key: str
+    
+        # user input / routing
     query: str
     route: str
 

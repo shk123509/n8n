@@ -9,15 +9,24 @@ from datetime import datetime
 load_dotenv()
 
 RAPID_API_KEY = os.getenv("RAPID_API_KEY")
-GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 
-gemini_client = genai.Client(api_key=GEMINI_API_KEY)
+
+
 
 
 def flight_status_node(state: State) -> State:
     print("✈️ Flight Status node running")
 
     user_query = state["query"]
+
+    user_key = state.get("user_api_key")
+
+    if not user_key:
+        state["llm_result"] = "Error: API Key missing in Python Engine."
+        return state
+    
+
+    client = genai.Client(api_key=user_key)
 
     # 1️⃣ EXTRACT FLIGHT NUMBER USING GEMINI
     intent_prompt = f"""
@@ -35,7 +44,7 @@ User text:
 Return ONLY the flight number.
 """
 
-    intent_response = gemini_client.models.generate_content(
+    intent_response = client.models.generate_content(
         model="gemini-flash-latest",
         contents=intent_prompt
     )
@@ -116,7 +125,7 @@ Flight Data:
 {json.dumps(raw_flight, indent=2)}
 """
 
-    response = gemini_client.models.generate_content(
+    response = client.models.generate_content(
         model="gemini-flash-latest",
         contents=prompt
     )

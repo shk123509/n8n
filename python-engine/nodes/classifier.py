@@ -1,16 +1,21 @@
-import os
-from dotenv import load_dotenv
 from google import genai
 from graph.state import State
 
-load_dotenv()
 
-client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
 
 def classification_query(state: State) -> State:
     print("🧭 classifier node running")
 
     query = state["query"]
+
+    user_key = state.get("user_api_key")
+
+    if not user_key:
+        state["llm_result"] = "Error: API Key missing in Python Engine."
+        return state
+    
+
+    client = genai.Client(api_key=user_key)
 
     SYSTEM_PROMPT = """
 You are a strict query classification AI.
@@ -26,16 +31,23 @@ AVAILABLE CATEGORIES
 - is_doctor_question
 - is_farmer_question
 - is_advice_question
+- course_finder_node
 - is_general_question
 - wow_serpapi_search_node
+- bank_ifsc_micr_node
+- courier_tracking_node
 - live_train_status_node
 - flight_status_node
 - crypto_stock_price_node
 - weather_node
-- job_search_node
+- company_info_node
+- find_jobs_from_query_node
 - wow_gemini_blog_writer_node
 - wow_hashnode_publish_node
 - youtube_video_summary_node
+- vehicle_info_node
+- product_price_compare_node
+- expense_tracker_node
 
 ----------------------------------
 STRICT RESPONSE RULES
@@ -47,6 +59,414 @@ STRICT RESPONSE RULES
 - No punctuation
 - Lowercase only
 - Never return multiple categories
+
+
+----------------------------------
+BANK IFSC / MICR LOOKUP RULE (HIGH PRIORITY)
+----------------------------------
+
+Route the query to:
+bank_ifsc_micr_node
+
+WHEN TO USE:
+
+Use this node if the user:
+- Mentions IFSC code
+- Mentions MICR code
+- Asks bank branch details
+- Asks bank details by city / address
+
+Trigger Keywords:
+ifsc, micr, bank branch, bank details,
+neft, rtgs, imps, branch address
+
+Examples:
+- "IFSC SBIN0005943"
+- "MICR code of SBI Andheri"
+- "bank branches in mumbai"
+- "find bank by IFSC"
+
+Priority:
+HIGH
+
+Conflict Resolution:
+If IFSC or MICR is present,
+ALWAYS route to bank_ifsc_micr_node
+
+
+----------------------------------
+COURIER TRACKING RULE (HIGH PRIORITY)
+----------------------------------
+
+Route the query to:
+courier_tracking_node
+
+WHEN TO USE:
+
+Use this node if the user:
+- Wants to track a courier / parcel
+- Mentions tracking number / AWB
+- Asks delivery status
+- Asks where the parcel is
+
+Intent Focus:
+Courier / parcel shipment tracking
+
+Trigger Keywords:
+track, tracking, courier, parcel, shipment, delivery status,
+awb, consignment, where is my parcel, order tracking
+
+Examples:
+- "track my parcel"
+- "DTDC tracking T01V4A0102004399"
+- "where is my courier"
+- "check shipment status"
+- "awb number T01V4A0102004399 status"
+
+DO NOT USE IF:
+- User asks flight status
+- User asks train status
+- User asks product price
+- User asks vehicle info
+
+Priority:
+HIGH
+
+Conflict Resolution:
+If tracking number is present,
+ALWAYS route to courier_tracking_node
+
+
+----------------------------------
+COMPANY INFO RULE (HIGH PRIORITY)
+----------------------------------
+
+Route the query to:
+company_info_node
+
+IF the user:
+- asks about a company
+- wants company details, overview, or profile
+- asks what a company does
+- asks about founders, industry, business, or background
+- mentions a company name without asking for jobs or stock price
+
+Keywords:
+company, organization, firm, startup, enterprise, business, profile, details, overview
+
+Examples:
+- "tell me about openai"
+- "infosys company details"
+- "what does microsoft do"
+- "about tesla company"
+- "google company overview"
+
+→ company_info_node
+
+
+
+
+----------------------------------
+PRODUCT PRICE RULE (HIGH PRIORITY)
+----------------------------------
+
+Route the query to:
+product_price_compare_node
+
+WHEN TO USE:
+
+Use this node if the user:
+- Asks for product price
+- Wants to compare prices across platforms
+- Searches for best product under a budget
+- Looks for cheapest / best deal
+- Mentions a product name with price intent
+
+Intent Focus:
+E-commerce product pricing and comparison.
+
+Trigger Keywords:
+price, cost, rate, deal, offer, discount, cheapest, best price,
+compare, under, below, budget, buy
+
+Product Indicators:
+mobile, phone, laptop, tv, headphone, earphones,
+iphone, samsung, oneplus, macbook, dell, hp,
+refrigerator, washing machine, shoes, smartwatch
+
+Examples:
+- "iphone 15 price"
+- "best laptop under 50000"
+- "samsung s23 cheapest price"
+- "compare iphone 14 price amazon flipkart"
+- "buy gaming laptop under 1 lakh"
+- "best phone below 30000"
+
+-> product_price_compare_node
+
+DO NOT USE IF:
+- User asks about company details → company_info_node
+- User asks about stock/share price → crypto_stock_price_node
+- User asks about jobs → job_search_node
+- User asks about reviews only → wow_serpapi_search_node
+- User asks about specs without buying intent → is_general_question
+
+Priority:
+HIGH
+
+Conflict Resolution:
+If BOTH price intent AND product name are present,
+ALWAYS prefer product_price_compare_node
+over wow_serpapi_search_node.
+
+----------------------------------
+EXPENSE TRACKER RULE (HIGH PRIORITY)
+----------------------------------
+
+Route the query to:
+expense_tracker_node
+
+🎯 PRIMARY PURPOSE
+
+Use this node when the user intent is:
+
+→ Personal spending mention
+→ Expense logging
+→ Money already spent
+→ Daily / casual expense tracking
+
+This node is strictly for:
+Recording user expenses and categorizing them
+
+🧠 INTENT SIGNALS (STRONG)
+1️⃣ Expense Action Keywords
+
+spent
+kharch
+kharcha
+pay
+paid
+diye
+lag gaye
+bill aaya
+expense
+spent on
+used money
+
+Hindi + Hinglish allowed
+
+2️⃣ Amount Indicators (ANY ONE REQUIRED)
+
+Numbers: 100, 450, 1200
+
+Currency symbols: ₹, Rs, INR
+
+Casual formats:
+
+500 ka
+
+300 rupaye
+
+1k
+
+2 hazar
+
+3️⃣ Expense Category Indicators (OPTIONAL but STRONG)
+
+food
+swiggy
+zomato
+petrol
+diesel
+fuel
+shopping
+amazon
+flipkart
+recharge
+mobile bill
+electricity
+rent
+travel
+bus
+train
+cab
+ola
+uber
+
+🚨 STRICT MATCH CONDITION
+
+If:
+
+(Amount Present)
+AND
+(Expense verb OR category)
+
+→ ALWAYS route to:
+expense_tracker_node
+
+🧩 FORCE ROUTING EXAMPLES
+
+"Maine Swiggy pe 450 kharch kiye"
+
+"Petrol me 1200 lag gaye"
+
+"Recharge 299 ka"
+
+"Aaj shopping me 3k uda diye"
+
+"Electricity bill 1800 aaya"
+
+"Cab ke 350 diye"
+
+"Lunch 200 ka"
+
+→ expense_tracker_node
+
+🔥 CONFLICT RESOLUTION (IMPORTANT)
+CASE 1:
+
+If query contains:
+
+Amount
+
+AND food / shopping / travel word
+
+Even if advice tone ho:
+
+"Aaj khana mehnga pad gaya 500 ka"
+
+→ expense_tracker_node
+
+CASE 2:
+
+If user says:
+
+"Maine aaj 1000 kharch kiye"
+
+Category missing
+BUT amount present
+
+→ expense_tracker_node
+(Category = "other")
+
+CASE 3:
+
+If BOTH present:
+
+Expense mention
+
+Budget / future planning
+
+Example:
+
+"Kal 2000 kharch karna padega"
+
+→ ❌ NOT expense tracker
+→ use budget_planner_node (future intent)
+
+❌ DO NOT ROUTE IF
+
+User asks how much should I spend → budget_planner_node
+
+User asks price of product → product_price_compare_node
+
+User asks monthly summary → expense_summary_node
+
+User asks saving tips only → general_finance_node
+
+User asks loan / EMI → emi_calculator_node
+
+🧠 PRIORITY LEVEL
+
+PRIORITY: HIGH
+
+If BOTH:
+
+Expense logging intent
+
+AND general finance advice
+
+→ ALWAYS prefer:
+expense_tracker_node
+
+----------------------------------
+VEHICLE INFO RULE (HIGH PRIORITY)
+----------------------------------
+
+Route the query to:
+vehicle_info_node
+
+WHEN TO USE:
+
+Use this node if the user:
+- Asks for vehicle details
+- Wants RTO / registration information
+- Enters a vehicle number directly
+- Asks owner, model, fuel type, registration details
+
+Intent Focus:
+Indian vehicle / RTO lookup.
+
+Trigger Keywords:
+vehicle, car, bike, scooty, registration, rc,
+rto, owner, model, fuel, engine, chassis,
+vehicle details, car details, bike details
+
+Vehicle Number Pattern (IMPORTANT):
+- Indian registration formats like:
+  DL01AB1234
+  MH12DE1433
+  UP16BQ9999
+  KA03MN4567
+
+Examples:
+- "DL01AB1234 vehicle details"
+- "check car number mh12de1433"
+- "bike registration details ka03mn4567"
+- "rto details for up16bq9999"
+- "owner details of dl8caf5030"
+
+-> vehicle_info_node
+
+DO NOT USE IF:
+- User asks about vehicle price → product_price_compare_node
+- User asks about stock/company → company_info_node
+- User asks about traffic rules → is_general_question
+- User asks about resale value → wow_serpapi_search_node
+
+Priority:
+HIGH
+
+Conflict Resolution:
+If a valid Indian vehicle number pattern is detected,
+ALWAYS route to vehicle_info_node
+even if words like "today" or "details" are present.
+
+
+
+----------------------------------
+COURSE FINDER RULE
+----------------------------------
+
+Route the query to:
+course_finder_node
+
+IF user:
+- asks for courses
+- mentions learning
+- wants certification
+- uses words like:
+  course, courses, online course, certification,
+  learn, training, tutorial
+
+Examples:
+- "best python course"
+- "free ai courses"
+- "machine learning certification"
+- "data science training online"
+
+→ course_finder_node
+
 
 ----------------------------------
 WEATHER RULE
