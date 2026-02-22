@@ -12,7 +12,7 @@ import {
   Sprout, Scale, BrainCircuit, FileText, Share2, 
   Database, SaveAll, HardDrive, Train, MapPin, Youtube,
   Briefcase, ExternalLink, Plane, CloudSun, TrendingUp, Building2, BookOpenText,
-  Factory, Car, Key, Lock, RefreshCcw, Landmark
+  Factory, Car, Key, Lock, RefreshCcw, Landmark,Trophy,GitBranch
 } from "lucide-react";
 
 // --- URL Detection Helper ---
@@ -60,6 +60,8 @@ const NODE_TYPES_CONFIG = [
   { id: "expesive_track", label: "EXPENSE TRACKER", color: "bg-yellow-500", special: true, icon: <Scale size={18}/> },
   { id: "courier", label: "Courier TRACKER", color: "bg-yellow-500", special: true, icon: <Scale size={18}/> },
   { id: "bank", label: "🏦 IFSC / BANK BRANCH LOOKUP", color: "bg-gray-500", special: true, icon: <Landmark size={18}/> },
+  { id: "live_score", label: "🏏 IPL / Cricket Live Score Node", color: "bg-orange-600", special: true, icon: <Trophy size={18}/> },
+  { id: "cicd", label: "🚀 ci_cd_generator_node", color: "bg-blue-700", special: true, icon: <GitBranch size={18}/> },
 ];
 
 const API_URL = "http://localhost:4000/api/v1";
@@ -123,7 +125,9 @@ export default function BuilderPage() {
     "company_info": "Company Info Node", "course_find": "Course Finder Node",
     "product_price": "Product Prices", "vehicle_info": "Vehicle Details",
     "expesive_track": "EXPENSE TRACKER", "courier": "Courier TRACKER",
-    "bank" : "🏦 IFSC / BANK BRANCH LOOKUP"
+    "bank" : "🏦 IFSC / BANK BRANCH LOOKUP",
+    "live_score" : "🏏 IPL / Cricket Live Score Node",
+    "cicd" : "🚀 ci_cd_generator_node"
   };
 
   useEffect(() => {

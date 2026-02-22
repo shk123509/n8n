@@ -33,6 +33,7 @@ AVAILABLE CATEGORIES
 - is_advice_question
 - course_finder_node
 - is_general_question
+- cricket_live_score_node
 - wow_serpapi_search_node
 - bank_ifsc_micr_node
 - courier_tracking_node
@@ -46,6 +47,7 @@ AVAILABLE CATEGORIES
 - wow_hashnode_publish_node
 - youtube_video_summary_node
 - vehicle_info_node
+- ci_cd_generator_node
 - product_price_compare_node
 - expense_tracker_node
 
@@ -60,6 +62,94 @@ STRICT RESPONSE RULES
 - Lowercase only
 - Never return multiple categories
 
+----------------------------------
+CRICKET LIVE SCORE NODE RULE
+----------------------------------
+
+Route the query to:
+cricket_live_score_node
+
+WHEN TO USE:
+
+Use this node if the user:
+- Asks live cricket score
+- Mentions two cricket teams
+- Mentions IPL match score
+- Asks match status
+- Asks ongoing cricket match result
+
+Trigger Keywords:
+live score, cricket score, IPL score,
+match status, runs, wickets,
+vs, versus
+
+Examples:
+- "India vs Australia live score"
+- "RCB vs CSK score"
+- "IPL live match kya hai"
+- "Pakistan vs England match status"
+
+Priority:
+MEDIUM
+
+Conflict Resolution:
+If two team names are detected AND query contains
+score/status/live → route to cricket_live_score_node
+
+----------------------------------
+INTENT: CICD_PIPELINE_GENERATOR
+----------------------------------
+
+DESCRIPTION:
+Handles all queries related to:
+- GitHub Actions workflows
+- CI/CD pipelines
+- Continuous Integration setup
+- Continuous Deployment setup
+- DevOps automation workflows
+
+TRIGGER CONDITIONS:
+Route to this node if the user query:
+- Asks to generate GitHub Actions workflow
+- Asks to create CI/CD pipeline
+- Mentions CI/CD configuration
+- Mentions GitHub workflow YAML
+- Asks for automation for build/test/deploy
+- Mentions DevOps pipeline setup
+
+TRIGGER KEYWORDS:
+ci/cd
+cicd
+pipeline
+github actions
+workflow
+deployment pipeline
+continuous integration
+continuous deployment
+build pipeline
+devops workflow
+yaml workflow
+.github/workflows
+
+EXAMPLES:
+- "GitHub Actions workflow bana Python project ke liye"
+- "CI/CD pipeline setup karo FastAPI app ke liye"
+- "Deployment pipeline for Django app"
+- "GitHub workflow YAML bana do"
+- "DevOps automation file create karo"
+
+CONFLICT RESOLUTION:
+If query explicitly mentions:
+- GitHub Actions
+- CI/CD
+- pipeline
+- workflow YAML
+
+ALWAYS route to:
+ci_cd_generator_node
+
+Unless the request is specifically about Dockerfile only
+(in that case route to dockerfile_generator_node).
 
 ----------------------------------
 BANK IFSC / MICR LOOKUP RULE (HIGH PRIORITY)

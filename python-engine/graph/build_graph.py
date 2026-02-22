@@ -26,7 +26,8 @@ from nodes.vehicle_info import vehicle_info_node
 from nodes.expesive_track import expense_tracker_node
 from nodes.courier import courier_tracking_node
 from nodes.bank import bank_ifsc_micr_node
-
+from nodes.live_score import cricket_live_score_node
+from nodes.cicd import ci_cd_generator_node
 
 
 def build_graph():
@@ -57,6 +58,8 @@ def build_graph():
     graph.add_node("expesive_track", expense_tracker_node)
     graph.add_node("courier", courier_tracking_node)
     graph.add_node("bank", bank_ifsc_micr_node)
+    graph.add_node("live_score", cricket_live_score_node)
+    graph.add_node("cicd", ci_cd_generator_node)
     
 
     graph.add_edge(START, "classify")
@@ -88,7 +91,9 @@ def build_graph():
             "vehicle_info_node" : "vehicle_info",
             "expense_tracker_node" : "expesive_track",
             "courier_tracking_node" : "courier",
-            "bank_ifsc_micr_node" : "bank"
+            "bank_ifsc_micr_node" : "bank",
+            "cricket_live_score_node" : "live_score",
+            "ci_cd_generator_node" : "cicd"
             
         }
     )
@@ -117,6 +122,8 @@ def build_graph():
     graph.add_edge("expesive_track", END)
     graph.add_edge("courier", END)
     graph.add_edge("bank", END)
+    graph.add_edge("live_score", END)
+    graph.add_edge("cicd", END)
   
 
     return graph.compile()
